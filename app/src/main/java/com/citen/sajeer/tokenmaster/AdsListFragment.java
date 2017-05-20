@@ -8,10 +8,13 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
+import android.media.ThumbnailUtils;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.MediaStore;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
 import android.support.design.widget.CoordinatorLayout;
@@ -72,27 +75,15 @@ public class AdsListFragment extends Fragment implements AdSpaceRecyclerListAdap
     private static final String TAG = "AdsListFragment";
     final static String KEY_POSITION = "position";
     private int PICK_FILE_REQUEST = 1;
-    int mCurrentPosition = 0;
-
-    private String selectedFilePath;
-    private String selectedFileName;
-    private String selectedFileExt;
+    int currentAdSpace = 0;
 
     DbHelper dbHelper;
 
-    List<String> adList;
+    ArrayList<AdData> adList;
     AdSpaceRecyclerListAdapter adapter;
     ItemTouchHelper mItemTouchHelper;
 
     int totalSize = 0;
-
-    DonutProgress donut_progress;
-    View mView;
-    LinearLayout uploader_area;
-    LinearLayout progress_area;
-    LinearLayout uploader_area_button;
-    LinearLayout progress_area_button;
-    String backgroundFileName;
 
     public AdsListFragment() {
         // Required empty public constructor
@@ -109,9 +100,17 @@ public class AdsListFragment extends Fragment implements AdSpaceRecyclerListAdap
             @Override
             public void onClick(View view) {
                 Intent intent = new Intent();
-                intent.setType("image/*");
-                intent.setAction(Intent.ACTION_GET_CONTENT);
-                startActivityForResult(Intent.createChooser(intent, "Select Picture"), PICK_FILE_REQUEST);
+                if(currentAdSpace == 0 || currentAdSpace == 1){
+                    intent.setType("image/*");
+                    intent.setAction(Intent.ACTION_GET_CONTENT);
+                    startActivityForResult(Intent.createChooser(intent, "Select Picture"), PICK_FILE_REQUEST);
+                }else if(currentAdSpace == 2 || currentAdSpace == 3 ){
+                    intent.setType("video/*");
+                    intent.setAction(Intent.ACTION_GET_CONTENT);
+                    startActivityForResult(Intent.createChooser(intent, "Select Picture"), PICK_FILE_REQUEST);
+                }else {
+                    //do something
+                }
             }
         });
 
@@ -124,7 +123,7 @@ public class AdsListFragment extends Fragment implements AdSpaceRecyclerListAdap
         super.onViewCreated(view, savedInstanceState);
 
         dbHelper = DbHelper.getInstance(getActivity().getApplicationContext());
-        adList = dbHelper.getAdList(mCurrentPosition);
+        adList = dbHelper.getAdList(currentAdSpace);
 
         adapter = new AdSpaceRecyclerListAdapter(this, this, adList, coordinatorLayout);
 
@@ -147,13 +146,25 @@ public class AdsListFragment extends Fragment implements AdSpaceRecyclerListAdap
         mSendMenuItem.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
             @Override
             public boolean onMenuItemClick(MenuItem item) {
-                Snackbar.make(coordinatorLayout,"Clicked", Snackbar.LENGTH_LONG).show();
-                dbHelper.updateAdListStatus(adapter.getAdListItems(), mCurrentPosition);
-                new SendPostRequest(mCurrentPosition, dbHelper.getAdListFileNames(mCurrentPosition)).execute("192.168.0.108:8000");
+                dbHelper.updateAdListStatus(adapter.getAdListItems(), currentAdSpace);
+                new SendPostRequest(currentAdSpace, getAdListFileNames()).execute("192.168.0.108:8000");
                 return true;
             }
         });
     }
+
+    public ArrayList<String> getAdListFileNames(){
+
+        List<AdData> adData  =  adapter.getAdListItems();
+        ArrayList<String> fileNames = new ArrayList<>();
+
+        for(int i=0; i<adData.size(); i++){
+            fileNames.add(adData.get(i).getFileName());
+        }
+
+        return fileNames;
+    }
+
 
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
@@ -168,8 +179,8 @@ public class AdsListFragment extends Fragment implements AdSpaceRecyclerListAdap
         Bundle args = getArguments();
         if (args != null){
             setAdSpace(args.getInt(KEY_POSITION));
-        } else if(mCurrentPosition != -1){
-            setAdSpace(mCurrentPosition);
+        } else if(currentAdSpace != -1){
+            setAdSpace(currentAdSpace);
         }
     }
 
@@ -189,23 +200,28 @@ public class AdsListFragment extends Fragment implements AdSpaceRecyclerListAdap
                     return;
                  }
 
-
+                final View mView;
+                final AdData adListData = new AdData();
                 Uri selectedFileUri = data.getData();
-                selectedFilePath = FilePath.getPath(getActivity(), selectedFileUri);
+                final String selectedFilePath = FilePath.getPath(getActivity(), selectedFileUri);
                 String[] tokens = selectedFilePath.substring(selectedFilePath.lastIndexOf("/")+1).split("\\.(?=[^\\.]+$)");
-                selectedFileName = tokens[0].trim().replaceAll("[\\-\\+\\.\\^:,(){}]", " ");
-                selectedFileExt = (tokens.length > 1)?tokens[1].trim():"";
+                String selectedFileName = tokens[0].trim().replaceAll("[\\-\\+\\.\\^:,{}_]", " ");
+                final String selectedFileExt = (tokens.length > 1)?tokens[1].trim():"";
                 Log.i(TAG, "Selected File Path:" + selectedFilePath);
+
+                final int THUMBSIZE = 64;
+                final Bitmap ThumbImage;
+
+                if(currentAdSpace == 0 || currentAdSpace == 1){
+                    ThumbImage = ThumbnailUtils.extractThumbnail(BitmapFactory.decodeFile(selectedFilePath), THUMBSIZE, THUMBSIZE);
+                }else{
+                    ThumbImage = ThumbnailUtils.createVideoThumbnail(selectedFilePath, MediaStore.Video.Thumbnails.MINI_KIND);
+                }
+
+
 
                 AlertDialog.Builder mBuilder = new AlertDialog.Builder(this.getActivity());
                 mView = getActivity().getLayoutInflater().inflate(R.layout.upload_dialog, null);
-
-                uploader_area = (LinearLayout) mView.findViewById(R.id.uploader_area);
-                progress_area = (LinearLayout) mView.findViewById(R.id.progress_area);
-                uploader_area_button = (LinearLayout) mView.findViewById(R.id.uploader_area_button);
-                progress_area_button = (LinearLayout) mView.findViewById(R.id.progress_area_button);
-
-                donut_progress = (DonutProgress) mView.findViewById(R.id.donut_progress);
 
                 TextView originalFileName = (TextView) mView.findViewById(R.id.original_file_name);
                 originalFileName.setText("Uploading file, " + selectedFilePath.substring(selectedFilePath.lastIndexOf("/")+1) + " to server, Update the display name if necessary...");
@@ -219,12 +235,20 @@ public class AdsListFragment extends Fragment implements AdSpaceRecyclerListAdap
 
                     @Override
                     public void onClick(View v) {
-                        backgroundFileName = fileDisplayName.getText().toString().trim();
-                        backgroundFileName = backgroundFileName.replaceAll(" ", "_");
-                        if(dbHelper.isFileNamePersent(mCurrentPosition, backgroundFileName)){
+
+                        adListData.setFileName(fileDisplayName.getText().toString().trim().replaceAll(" ", "_")+"."+selectedFileExt);
+                        adListData.setDisplayName(fileDisplayName.getText().toString().trim());
+                        adListData.setAdSpaceId(currentAdSpace);
+                        try {
+                            adListData.setDirectoryPath(saveToInternalStorage(ThumbImage, adListData.getFileName()));
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+
+                        if(dbHelper.isFileNamePersent(currentAdSpace, adListData.getFileName())){
                             Snackbar.make(coordinatorLayout,"File name already available!!", Snackbar.LENGTH_LONG).show();
                         }else{
-                            new UploadFileToServer().execute();
+                            new UploadFileToServer(mView, adListData, selectedFilePath).execute();
                         }
                     }
                 });
@@ -233,7 +257,8 @@ public class AdsListFragment extends Fragment implements AdSpaceRecyclerListAdap
 
                 mBuilder.setView(mView);
                 final AlertDialog dialog = mBuilder.create();
-                dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+                if(dialog.getWindow() != null)
+                    dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
                 dialog.setCanceledOnTouchOutside(false);
 
 
@@ -260,29 +285,49 @@ public class AdsListFragment extends Fragment implements AdSpaceRecyclerListAdap
 
 
     public void setAdSpace(int adSpaceIndex){
-        mCurrentPosition = adSpaceIndex;
+        currentAdSpace = adSpaceIndex;
         adapter.updateAdList(dbHelper.getAdList(adSpaceIndex));
     }
 
     @Override
     public void deleteAdItem(String adName) {
         Toast.makeText(getActivity(), adName, Toast.LENGTH_SHORT).show();
-        dbHelper.removeSingleAd(adName, mCurrentPosition);
+        dbHelper.removeSingleAd(adName, currentAdSpace);
     }
 
 
     private class UploadFileToServer extends AsyncTask<String, String, Integer> {
 
+        DonutProgress donut_progress;
+        LinearLayout uploader_area;
+        LinearLayout progress_area;
+        LinearLayout uploader_area_button;
+        LinearLayout progress_area_button;
+
         File selectedFile;
+        String selectedFilePath;
         HttpURLConnection connection;
         DataOutputStream dataOutputStream;
         String lineEnd = "\r\n";
         String twoHyphens = "--";
         String boundary = "*****";
         int serverResponseCode = 0;
+        View mView;
+        AdData adData = new AdData();
+
+        UploadFileToServer(View mView, AdData adData, String selectedFilePath){
+            this.mView = mView;
+            this.adData = adData;
+            this.selectedFilePath = selectedFilePath;
+        }
 
         @Override
         protected void onPreExecute() {
+            uploader_area = (LinearLayout) mView.findViewById(R.id.uploader_area);
+            progress_area = (LinearLayout) mView.findViewById(R.id.progress_area);
+            uploader_area_button = (LinearLayout) mView.findViewById(R.id.uploader_area_button);
+            progress_area_button = (LinearLayout) mView.findViewById(R.id.progress_area_button);
+            donut_progress = (DonutProgress) mView.findViewById(R.id.donut_progress);
             donut_progress.setProgress(0);
             uploader_area.setVisibility(View.GONE);
             uploader_area_button.setVisibility(View.GONE);
@@ -295,7 +340,7 @@ public class AdsListFragment extends Fragment implements AdSpaceRecyclerListAdap
 
         @Override
         protected void onProgressUpdate(String... progress) {
-            donut_progress.setProgress(Integer.parseInt(progress[0])); //Updating progress
+            donut_progress.setProgress(Integer.parseInt(progress[0]));
         }
 
         @Override
@@ -316,7 +361,7 @@ public class AdsListFragment extends Fragment implements AdSpaceRecyclerListAdap
                     connection.setRequestProperty(
                             "Content-Type", "multipart/form-data;boundary=" + boundary);
                     connection.setRequestProperty("uploaded_file",selectedFilePath);
-                    connection.setRequestProperty("new_name", backgroundFileName);
+                    connection.setRequestProperty("new_name", adData.getFileName());
 
                     dataOutputStream = new DataOutputStream(connection.getOutputStream());
 
@@ -367,14 +412,14 @@ public class AdsListFragment extends Fragment implements AdSpaceRecyclerListAdap
         protected void onPostExecute(Integer result) {
             super.onPostExecute(result);
             if(result == 200){
-                adapter.appendToAdList(selectedFileName);
-                dbHelper.insertAd(mCurrentPosition, adList.size(), backgroundFileName, selectedFileExt);
+                adapter.appendToAdList(adData);
+                dbHelper.insertAd(adData, adList.size());
             }
 
         }
     }
 
-    public class SendPostRequest extends AsyncTask<String, Void, String> {
+    private class SendPostRequest extends AsyncTask<String, Void, String> {
 
         int adSpaceId;
         ArrayList<String> adList;
@@ -457,6 +502,7 @@ public class AdsListFragment extends Fragment implements AdSpaceRecyclerListAdap
         return result;
     }
 
+    @NonNull
     private static String getPostDataString(JSONObject postDataParameters) throws Exception {
         StringBuilder result = new StringBuilder();
         boolean first = true;
@@ -483,6 +529,7 @@ public class AdsListFragment extends Fragment implements AdSpaceRecyclerListAdap
         return result.toString();
     }
 
+    @NonNull
     private String saveToInternalStorage(Bitmap thumbnail, String fileName) throws IOException {
 
         ContextWrapper cw = new ContextWrapper(getActivity().getApplicationContext());
@@ -503,17 +550,4 @@ public class AdsListFragment extends Fragment implements AdSpaceRecyclerListAdap
         return directory.getAbsolutePath();
     }
 
-    private Bitmap loadImageFromStorage(String path, String fileName)
-    {
-        Bitmap b = null;
-        try {
-            File f = new File(path, fileName);
-            b = BitmapFactory.decodeStream(new FileInputStream(f));
-        }
-        catch (FileNotFoundException e)
-        {
-            e.printStackTrace();
-        }
-        return b;
-    }
 }

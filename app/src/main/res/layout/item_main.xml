@@ -27,7 +27,7 @@
         app:civ_border_color="#95c4ba"/>
 
     <TextView
-        android:id="@+id/text"
+        android:id="@+id/file_name"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_toRightOf="@+id/thumb_image"

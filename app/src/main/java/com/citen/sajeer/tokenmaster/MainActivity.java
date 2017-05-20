@@ -33,9 +33,7 @@ public class MainActivity extends AppCompatActivity implements OnAdSpaceSelectio
                     .commit();
         }
 
-        dbHelper = DbHelper.getInstance(getApplicationContext());
-
-
+        setTitle("TOKEN MANAGER MASTER");
     }
 
 
@@ -43,6 +41,8 @@ public class MainActivity extends AppCompatActivity implements OnAdSpaceSelectio
     public void onSelectionChanged(int adSpaceIndex) {
         AdsListFragment adsListFragment = (AdsListFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.ads_list_fragment);
+
+        setTitle("AD SPACE " + Integer.toString(adSpaceIndex + 1));
 
         if (adsListFragment != null){
             // If description is available, we are in two pane layout
@@ -63,5 +63,10 @@ public class MainActivity extends AppCompatActivity implements OnAdSpaceSelectio
             fragmentTransaction.addToBackStack(null);
             fragmentTransaction.commit();
         }
+    }
+
+    @Override
+    public void changeTitle() {
+        setTitle("TOKEN MANAGER MASTER");
     }
 }

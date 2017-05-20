@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/action_settings"
+        android:enabled="true"
+        android:icon="@drawable/ic_settings_white_24dp"
+        android:title="@string/settings"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_display_main_content"
+        android:enabled="true"
+        android:icon="@drawable/ic_phonelink_erase_white_24dp"
+        android:title="@string/bnav_content"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_audio"
+        android:enabled="true"
+        android:icon="@drawable/ic_volume_up_white_24dp"
+        android:title="@string/bnav_audio"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_about"
+        android:enabled="true"
+        android:icon="@drawable/ic_details_white_24dp"
+        android:title="@string/bnav_about"
+        app:showAsAction="ifRoom" />
+</menu>

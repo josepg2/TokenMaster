@@ -70,30 +70,6 @@ public class DbHelper extends SQLiteOpenHelper {
         return mDbHelper;
     }
 
-    void insertAd(int adSpaceId, int adStatus, String adName, String adExt){
-        SQLiteDatabase db = getWritableDatabase();
-
-        db.beginTransaction();
-
-        try {
-
-            ContentValues values = new ContentValues();
-            values.put(ADSPACEID, adSpaceId);
-            values.put(ADNAME, adName);
-            values.put(ADFILENAME, adExt);
-            values.put(STATUS, adStatus);
-
-            db.insertOrThrow(TABLE_ADLIST, null, values);
-            db.setTransactionSuccessful();
-        } catch (SQLException e) {
-            e.printStackTrace();
-            Log.d(TAG, "Error while trying to add post to database");
-        } finally {
-            Log.d(TAG, "added something");
-            db.endTransaction();
-        }
-    }
-
     void insertAd(AdData adData, int adStatus){
         SQLiteDatabase db = getWritableDatabase();
 
@@ -117,37 +93,6 @@ public class DbHelper extends SQLiteOpenHelper {
             Log.d(TAG, "added something");
             db.endTransaction();
         }
-    }
-
-
-
-    ArrayList<String> getAdList1(int adSpaceId) {
-
-        ArrayList<String> adList = new ArrayList<>();
-
-        String AD_LIST_SELECT_QUERY = "SELECT * FROM " + TABLE_ADLIST + " WHERE " + ADSPACEID + " = " + Integer.toString(adSpaceId) + " ORDER BY " + STATUS +  " ASC";
-
-        SQLiteDatabase db = getReadableDatabase();
-        Cursor cursor = db.rawQuery(AD_LIST_SELECT_QUERY, null);
-
-        try {
-            if (cursor.moveToFirst()) {
-                do {
-
-                    adList.add(cursor.getString(cursor.getColumnIndex(ADNAME)).replaceAll("_", " "));
-
-                } while (cursor.moveToNext());
-            }
-        } catch (Exception e) {
-            Log.d(TAG, "Error while trying to get posts from database");
-        } finally {
-            if (cursor != null && !cursor.isClosed()) {
-                cursor.close();
-            }
-        }
-
-        return adList;
-
     }
 
     ArrayList<AdData> getAdList(int adSpaceId){
@@ -185,36 +130,6 @@ public class DbHelper extends SQLiteOpenHelper {
 
     }
 
-    ArrayList<String> getAdListFileNames(int adSpaceId) {
-
-        ArrayList<String> adList = new ArrayList<>();
-
-        String AD_LIST_SELECT_QUERY = "SELECT * FROM " + TABLE_ADLIST + " WHERE " + ADSPACEID + " = " + Integer.toString(adSpaceId) + " ORDER BY " + STATUS +  " ASC";
-
-        SQLiteDatabase db = getReadableDatabase();
-        Cursor cursor = db.rawQuery(AD_LIST_SELECT_QUERY, null);
-
-        try {
-            if (cursor.moveToFirst()) {
-                do {
-
-                    adList.add(cursor.getString(cursor.getColumnIndex(ADNAME))+"."+cursor.getString(cursor.getColumnIndex(ADFILENAME)));
-
-                } while (cursor.moveToNext());
-            }
-        } catch (Exception e) {
-            Log.d(TAG, "Error while trying to get posts from database");
-        } finally {
-            if (cursor != null && !cursor.isClosed()) {
-                cursor.close();
-            }
-        }
-
-        return adList;
-
-    }
-
-
     boolean isFileNamePersent(int asSpaceId, String fileName){
 
         boolean isFilePresent = false;
@@ -239,7 +154,7 @@ public class DbHelper extends SQLiteOpenHelper {
         return isFilePresent;
     }
 
-    void updateAdListStatus(List<String> adList, int adSpaceId){
+    void updateAdListStatus(List<AdData> adList, int adSpaceId){
         int loop = 0;
 
         SQLiteDatabase db = getWritableDatabase();
@@ -249,7 +164,7 @@ public class DbHelper extends SQLiteOpenHelper {
                 ContentValues values = new ContentValues();
                 values.put(STATUS, loop);
 
-                db.update(TABLE_ADLIST, values, ADNAME + " = ? AND " + ADSPACEID + " = ?" , new String[]{adList.get(loop).replaceAll(" ", "_"), Integer.toString(adSpaceId)});
+                db.update(TABLE_ADLIST, values, ADFILENAME + " = ? AND " + ADSPACEID + " = ?" , new String[]{adList.get(loop).getFileName(), Integer.toString(adSpaceId)});
                 loop++;
 
             }
@@ -262,13 +177,13 @@ public class DbHelper extends SQLiteOpenHelper {
         }
     }
 
-    public void removeSingleAd(String adName, int adSpaceId) {
+    void removeSingleAd(String adfileName, int adSpaceId) {
         //Open the database
         SQLiteDatabase database = this.getWritableDatabase();
 
         //Execute sql query to remove from database
         //NOTE: When removing by String in SQL, value must be enclosed with ''
-        database.execSQL("DELETE FROM " + TABLE_ADLIST + " WHERE " + ADSPACEID + " = "+ Integer.toString(adSpaceId) + " AND " + ADNAME + " = '" + adName.replaceAll(" ", "_") + "'");
+        database.execSQL("DELETE FROM " + TABLE_ADLIST + " WHERE " + ADSPACEID + " = "+ Integer.toString(adSpaceId) + " AND " + ADFILENAME + " = '" + adfileName + "'");
 
         //Close the database
         database.close();

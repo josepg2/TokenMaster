@@ -8,4 +8,5 @@ public interface OnAdSpaceSelectionChangeListner {
 
     public void onSelectionChanged(int adSpaceIndex);
 
+    public void changeTitle();
 }

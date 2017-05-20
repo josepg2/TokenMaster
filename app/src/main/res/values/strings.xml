@@ -14,4 +14,11 @@
     <string name="file_selcted">File Selcted</string>
     <string name="file_display_name">Display Name</string>
     <string name="display_file_selcted">Upload file , very_long_filename.ext to server, Update the display name if necessary …</string>
+    <string name="text_favorites">one</string>
+    <string name="text_schedules">two</string>
+    <string name="text_music">three</string>
+    <string name="bnav_about">About</string>
+    <string name="bnav_audio">Audio</string>
+    <string name="bnav_content">Content</string>
+    <string name="settings">Settings</string>
 </resources>
