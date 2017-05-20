@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Android Version Names -->
+    <string-array name="adspace_names">
+        <item>@string/ad_space_one</item>
+        <item>@string/ad_space_two</item>
+        <item>@string/ad_space_three</item>
+        <item>@string/ad_space_four</item>
+        <item>@string/ad_space_five</item>
+    </string-array>
+
+    <!-- Version Descriptions-->
+    <string-array name="version_descriptions">
+    </string-array>
+</resources>

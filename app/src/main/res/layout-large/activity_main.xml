@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.design.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/coordinator_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:baselineAligned="false">
+
+        <fragment
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:name="com.citen.sajeer.tokenmaster.AdSpaceListFragment"
+            android:id="@+id/ad_space_fragment"
+            android:layout_weight="1"
+            tools:layout="@layout/fragment_ad_space_list" />
+
+        <fragment
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:name="com.citen.sajeer.tokenmaster.AdsListFragment"
+            android:id="@+id/ads_list_fragment"
+            android:layout_weight="1"
+            tools:layout="@layout/fragment_ads_list" />
+
+    </LinearLayout>
+</android.support.design.widget.CoordinatorLayout>
