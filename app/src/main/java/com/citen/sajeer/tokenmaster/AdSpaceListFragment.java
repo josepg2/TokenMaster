@@ -39,32 +39,7 @@ public class AdSpaceListFragment extends Fragment{
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         v = inflater.inflate(R.layout.fragment_ad_space_list, container, false);
-
-
-
         return v;
-
-    }
-
-    @Override
-    public void onViewCreated(View view, @Nullable Bundle savedInstanceState)  {
-        super.onViewCreated(view, savedInstanceState);
-
-        BottomNavigationView bottomNavigationView = (BottomNavigationView) v.findViewById(R.id.bottom_navigation);
-
-        bottomNavigationView.setOnNavigationItemSelectedListener(
-                new BottomNavigationView.OnNavigationItemSelectedListener() {
-                    @Override
-                    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-                        switch (item.getItemId()) {
-                            case R.id.action_settings:
-                            case R.id.action_display_main_content:
-                            case R.id.action_audio:
-                            case R.id.action_about:
-                        }
-                        return true;
-                    }
-                });
 
     }
 
@@ -85,7 +60,7 @@ public class AdSpaceListFragment extends Fragment{
     public void onResume() {
         super.onResume();
         OnAdSpaceSelectionChangeListner listener = (OnAdSpaceSelectionChangeListner) getActivity();
-        listener.changeTitle();
+        listener.changeTitle(0);
 
     }
 

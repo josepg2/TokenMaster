@@ -1,12 +1,17 @@
 package com.citen.sajeer.tokenmaster;
 
+import android.Manifest;
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.media.ThumbnailUtils;
 import android.net.Uri;
@@ -20,7 +25,9 @@ import android.support.annotation.RequiresApi;
 import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -32,6 +39,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -100,22 +108,105 @@ public class AdsListFragment extends Fragment implements AdSpaceRecyclerListAdap
             @Override
             public void onClick(View view) {
                 Intent intent = new Intent();
-                if(currentAdSpace == 0 || currentAdSpace == 1){
+                if((currentAdSpace == 0 || currentAdSpace == 1) && CheckStoragePermission()){
                     intent.setType("image/*");
                     intent.setAction(Intent.ACTION_GET_CONTENT);
                     startActivityForResult(Intent.createChooser(intent, "Select Picture"), PICK_FILE_REQUEST);
-                }else if(currentAdSpace == 2 || currentAdSpace == 3 ){
+                }else if((currentAdSpace == 2 || currentAdSpace == 3 ) && CheckStoragePermission()){
                     intent.setType("video/*");
                     intent.setAction(Intent.ACTION_GET_CONTENT);
                     startActivityForResult(Intent.createChooser(intent, "Select Picture"), PICK_FILE_REQUEST);
                 }else {
-                    //do something
+                    AlertDialog.Builder mBuilder = new AlertDialog.Builder(getActivity());
+                    final View mView = getActivity().getLayoutInflater().inflate(R.layout.scroll_text_dialog, null);
+
+                    Button cancelButton = (Button) mView.findViewById(R.id.button_cancel);
+                    Button addButton = (Button) mView.findViewById(R.id.button_add);
+
+                    mBuilder.setView(mView);
+                    final AlertDialog dialog = mBuilder.create();
+                    if(dialog.getWindow() != null)
+                        dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+
+                    addButton.setOnClickListener(new View.OnClickListener(){
+
+                        @Override
+                        public void onClick(View v) {
+
+                            AdData adData = new AdData();
+
+                            EditText textAdTitleView = (EditText) mView.findViewById(R.id.text_ad_title_value);
+                            EditText textAdContentView = (EditText) mView.findViewById(R.id.text_ad_datail_value);
+
+                            String textAdTitle = textAdTitleView.getText().toString().trim();
+                            String textAdContent = textAdContentView.getText().toString().trim();
+
+                            SharedPreferences sharedPref = getActivity().getPreferences(Context.MODE_PRIVATE);
+
+                            if(textAdContent.isEmpty() || textAdTitle.isEmpty()){
+                                Snackbar.make(coordinatorLayout,"VATUES CANNOT BE EMPTY", Snackbar.LENGTH_LONG).show();
+                            }else{
+                                adData.setFileName(textAdContent);
+                                adData.setDisplayName(textAdTitle);
+                                adData.setAdSpaceId(currentAdSpace);
+                                adData.setDirectoryPath(sharedPref.getString("LETTERTPATH", "Not saved yet"));
+                                adapter.appendToAdList(adData);
+                                dbHelper.insertAd(adData, adList.size());
+                                dialog.dismiss();
+
+                            }
+                        }
+                    });
+
+
+                    cancelButton.setOnClickListener(new View.OnClickListener(){
+
+                        @Override
+                        public void onClick(View v) {
+                            dialog.dismiss();
+                        }
+                    });
+
+                    dialog.show();
+
+                    WindowManager.LayoutParams lp = dialog.getWindow().getAttributes();
+                    lp.dimAmount=0.2f; // Dim level. 0.0 - no dim, 1.0 - completely opaque
+                    dialog.getWindow().setAttributes(lp);
                 }
             }
         });
 
         return v;
 
+    }
+
+    @TargetApi(Build.VERSION_CODES.M)
+    public boolean CheckStoragePermission() {
+        int permissionCheckRead = ContextCompat.checkSelfPermission(getContext(),
+                Manifest.permission.READ_EXTERNAL_STORAGE);
+        if (permissionCheckRead != PackageManager.PERMISSION_GRANTED) {
+            if (ActivityCompat.shouldShowRequestPermissionRationale((Activity) getContext(),
+                    Manifest.permission.READ_EXTERNAL_STORAGE)) {
+                // Show an expanation to the user *asynchronously* -- don't block
+                // this thread waiting for the user's response! After the user
+                // sees the explanation, try again to request the permission.
+                ActivityCompat.requestPermissions(getActivity(),
+                        new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+                        1);
+            } else {
+                // No explanation needed, we can request the permission.
+
+                ActivityCompat.requestPermissions((Activity) getContext(),
+                        new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+                        1);
+
+                // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
+                // app-defined int constant. The callback method gets the
+                // result of the request.
+            }
+            return false;
+        } else
+            return true;
     }
 
     @Override
@@ -221,10 +312,11 @@ public class AdsListFragment extends Fragment implements AdSpaceRecyclerListAdap
 
 
                 AlertDialog.Builder mBuilder = new AlertDialog.Builder(this.getActivity());
+                mBuilder.setCancelable(false);
                 mView = getActivity().getLayoutInflater().inflate(R.layout.upload_dialog, null);
 
                 TextView originalFileName = (TextView) mView.findViewById(R.id.original_file_name);
-                originalFileName.setText("Uploading file, " + selectedFilePath.substring(selectedFilePath.lastIndexOf("/")+1) + " to server, Update the display name if necessary...");
+                originalFileName.setText(selectedFilePath.substring(selectedFilePath.lastIndexOf("/")+1));
 
                 final EditText fileDisplayName = (EditText) mView.findViewById(R.id.display_file_name);
                 fileDisplayName.setText(selectedFileName);
@@ -253,6 +345,7 @@ public class AdsListFragment extends Fragment implements AdSpaceRecyclerListAdap
                     }
                 });
                 Button closeButton = (Button) mView.findViewById(R.id.button_close);
+                closeButton.setEnabled(false);
 
 
                 mBuilder.setView(mView);
@@ -260,6 +353,8 @@ public class AdsListFragment extends Fragment implements AdSpaceRecyclerListAdap
                 if(dialog.getWindow() != null)
                     dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
                 dialog.setCanceledOnTouchOutside(false);
+
+
 
 
                 cancelButton.setOnClickListener(new View.OnClickListener(){
@@ -278,6 +373,10 @@ public class AdsListFragment extends Fragment implements AdSpaceRecyclerListAdap
                 });
 
                 dialog.show();
+
+                WindowManager.LayoutParams lp = dialog.getWindow().getAttributes();
+                lp.dimAmount=0.2f; // Dim level. 0.0 - no dim, 1.0 - completely opaque
+                dialog.getWindow().setAttributes(lp);
 
             }
         }
@@ -303,6 +402,7 @@ public class AdsListFragment extends Fragment implements AdSpaceRecyclerListAdap
         LinearLayout progress_area;
         LinearLayout uploader_area_button;
         LinearLayout progress_area_button;
+        Button closeButton;
 
         File selectedFile;
         String selectedFilePath;
@@ -328,6 +428,7 @@ public class AdsListFragment extends Fragment implements AdSpaceRecyclerListAdap
             uploader_area_button = (LinearLayout) mView.findViewById(R.id.uploader_area_button);
             progress_area_button = (LinearLayout) mView.findViewById(R.id.progress_area_button);
             donut_progress = (DonutProgress) mView.findViewById(R.id.donut_progress);
+            closeButton = (Button) mView.findViewById(R.id.button_close);
             donut_progress.setProgress(0);
             uploader_area.setVisibility(View.GONE);
             uploader_area_button.setVisibility(View.GONE);
@@ -415,6 +516,7 @@ public class AdsListFragment extends Fragment implements AdSpaceRecyclerListAdap
                 adapter.appendToAdList(adData);
                 dbHelper.insertAd(adData, adList.size());
             }
+            closeButton.setEnabled(true);
 
         }
     }

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.v7.preference.PreferenceScreen
+    xmlns:android="http://schemas.android.com/apk/res/android">
+    <android.support.v7.preference.PreferenceCategory
+        android:title="User Details"
+        android:key="perf_key_doctor_details">
+        <android.support.v7.preference.EditTextPreference
+            android:title="User Name"
+            android:key="pref_key_user_name"
+            android:summary="Enter User Name">
+        </android.support.v7.preference.EditTextPreference>
+        <android.support.v7.preference.EditTextPreference
+            android:title="User ID"
+            android:key="pref_key_user_id"
+            android:summary="Enter User ID">
+        </android.support.v7.preference.EditTextPreference>
+        <android.support.v7.preference.EditTextPreference
+            android:title="@string/doctor_hospital_name"
+            android:key="pref_key_hospital_name"
+            android:summary="Enter Hospital Name">
+        </android.support.v7.preference.EditTextPreference>
+    </android.support.v7.preference.PreferenceCategory>
+    <android.support.v7.preference.PreferenceCategory
+        android:title="@string/connectivity_details"
+        android:key="perf_key_connectivity_details">
+        <android.support.v7.preference.EditTextPreference
+            android:title="@string/ip_address"
+            android:key="pref_key_ip_address"
+            android:inputType="number|numberDecimal"
+            android:digits="0123456789."
+            android:summary="Enter IP Address">
+        </android.support.v7.preference.EditTextPreference>
+        <android.support.v7.preference.EditTextPreference
+            android:title="@string/port_id"
+            android:key="pref_key_port_id"
+            android:inputType="number"
+            android:summary="Enter Port ID">
+        </android.support.v7.preference.EditTextPreference>
+    </android.support.v7.preference.PreferenceCategory>
+</android.support.v7.preference.PreferenceScreen>

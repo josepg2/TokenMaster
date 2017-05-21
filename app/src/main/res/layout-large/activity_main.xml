@@ -2,7 +2,6 @@
 <android.support.design.widget.CoordinatorLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/coordinator_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
     <LinearLayout
@@ -14,10 +13,10 @@
         <fragment
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:name="com.citen.sajeer.tokenmaster.AdSpaceListFragment"
+            android:name="com.citen.sajeer.tokenmaster.MainContentFragment"
             android:id="@+id/ad_space_fragment"
             android:layout_weight="1"
-            tools:layout="@layout/fragment_ad_space_list" />
+            tools:layout="@layout/fragment_main_content" />
 
         <fragment
             android:layout_width="0dp"

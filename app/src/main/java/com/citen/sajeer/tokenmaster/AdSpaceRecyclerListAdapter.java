@@ -77,7 +77,7 @@ public class AdSpaceRecyclerListAdapter extends RecyclerView.Adapter<AdSpaceRecy
     @Override
     public void onBindViewHolder(final ItemViewHolder holder, int position) {
         holder.fileName.setText(mItems.get(position).getDisplayName());
-        Bitmap thumbnailImage = loadImageFromStorage(mItems.get(position).getDirectoryPath(), mItems.get(position).getFileName());
+        Bitmap thumbnailImage = loadImageFromStorage(mItems.get(position).getDirectoryPath(), (mItems.get(position).getAdSpaceId()==4)?"letter_t.png":mItems.get(position).getFileName());
         if(thumbnailImage != null)
             holder.thumbImage.setImageBitmap(thumbnailImage);
         // Start a drag whenever the handle view it touched
