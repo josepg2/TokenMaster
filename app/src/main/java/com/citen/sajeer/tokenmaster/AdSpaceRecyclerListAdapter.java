@@ -165,8 +165,16 @@ public class AdSpaceRecyclerListAdapter extends RecyclerView.Adapter<AdSpaceRecy
         notifyItemChanged(this.mItems.size() - 1);
     }
 
+    public void updateAdsToDelete(){
+        adsToDelete.clear();
+    }
+
     List<AdData> getAdListItems(){
         return this.mItems;
+    }
+
+    List<AdData> getAdListItemsToDelete(){
+        return this.adsToDelete;
     }
 
     private Bitmap loadImageFromStorage(String path, String fileName)

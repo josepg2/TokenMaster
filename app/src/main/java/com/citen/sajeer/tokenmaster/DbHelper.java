@@ -188,4 +188,16 @@ public class DbHelper extends SQLiteOpenHelper {
         //Close the database
         database.close();
     }
+
+    void removeAllAd(int adSpaceId) {
+        //Open the database
+        SQLiteDatabase database = this.getWritableDatabase();
+
+        //Execute sql query to remove from database
+        //NOTE: When removing by String in SQL, value must be enclosed with ''
+        database.execSQL("DELETE FROM " + TABLE_ADLIST + " WHERE " + ADSPACEID + " = "+ Integer.toString(adSpaceId));
+
+        //Close the database
+        database.close();
+    }
 }

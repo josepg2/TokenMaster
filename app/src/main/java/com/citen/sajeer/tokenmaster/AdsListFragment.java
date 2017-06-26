@@ -11,7 +11,6 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
-import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.media.ThumbnailUtils;
 import android.net.Uri;
@@ -47,7 +46,10 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.citen.sajeer.tokenmaster.helper.SimpleItemTouchHelperCallback;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.github.lzyzsd.circleprogress.DonutProgress;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -58,12 +60,12 @@ import java.io.BufferedWriter;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -78,7 +80,7 @@ public class AdsListFragment extends Fragment implements AdSpaceRecyclerListAdap
     CoordinatorLayout coordinatorLayout;
     View v;
 
-    private String SERVER_URL = "http://192.168.0.108:3000/upload";
+    private String SERVER_URL = "http://192.168.0.150:8080";
 
     private static final String TAG = "AdsListFragment";
     final static String KEY_POSITION = "position";
@@ -237,8 +239,7 @@ public class AdsListFragment extends Fragment implements AdSpaceRecyclerListAdap
         mSendMenuItem.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
             @Override
             public boolean onMenuItemClick(MenuItem item) {
-                dbHelper.updateAdListStatus(adapter.getAdListItems(), currentAdSpace);
-                new SendPostRequest(currentAdSpace, getAdListFileNames()).execute("192.168.0.108:8000");
+                new SendPostRequest(currentAdSpace, getAdListFileNames(), getAdListFileNamesToDelete()).execute("192.168.0.150:8080/updateServer");
                 return true;
             }
         });
@@ -247,6 +248,18 @@ public class AdsListFragment extends Fragment implements AdSpaceRecyclerListAdap
     public ArrayList<String> getAdListFileNames(){
 
         List<AdData> adData  =  adapter.getAdListItems();
+        ArrayList<String> fileNames = new ArrayList<>();
+
+        for(int i=0; i<adData.size(); i++){
+            fileNames.add(adData.get(i).getFileName());
+        }
+
+        return fileNames;
+    }
+
+    public ArrayList<String> getAdListFileNamesToDelete(){
+
+        List<AdData> adData  =  adapter.getAdListItemsToDelete();
         ArrayList<String> fileNames = new ArrayList<>();
 
         for(int i=0; i<adData.size(); i++){
@@ -407,10 +420,6 @@ public class AdsListFragment extends Fragment implements AdSpaceRecyclerListAdap
         File selectedFile;
         String selectedFilePath;
         HttpURLConnection connection;
-        DataOutputStream dataOutputStream;
-        String lineEnd = "\r\n";
-        String twoHyphens = "--";
-        String boundary = "*****";
         int serverResponseCode = 0;
         View mView;
         AdData adData = new AdData();
@@ -450,27 +459,65 @@ public class AdsListFragment extends Fragment implements AdSpaceRecyclerListAdap
                 try {
                     FileInputStream fileInputStream = new FileInputStream(selectedFile);
                     BufferedInputStream bufInput = new BufferedInputStream(fileInputStream);
-                    URL url = new URL(SERVER_URL);
+                    URL url = new URL(SERVER_URL + "/upload");
                     connection = (HttpURLConnection) url.openConnection();
-                    connection.setDoInput(true);
-                    connection.setDoOutput(true);
-                    connection.setUseCaches(false);
-                    connection.setChunkedStreamingMode(1024);
+
+
                     connection.setRequestMethod("POST");
+                    String boundary = "---------------------------boundary";
+                    String tail = boundary + "\r\n";
+                    connection.setRequestProperty("AdSpaceID", Integer.toString(adData.getAdSpaceId()));
                     connection.setRequestProperty("Connection", "Keep-Alive");
-                    connection.setRequestProperty("ENCTYPE", "multipart/form-data");
-                    connection.setRequestProperty(
-                            "Content-Type", "multipart/form-data;boundary=" + boundary);
-                    connection.setRequestProperty("uploaded_file",selectedFilePath);
-                    connection.setRequestProperty("new_name", adData.getFileName());
+                    connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
+                    connection.setDoOutput(true);
 
-                    dataOutputStream = new DataOutputStream(connection.getOutputStream());
 
-                    dataOutputStream.writeBytes(twoHyphens + boundary + lineEnd);
-                    dataOutputStream.writeBytes("Content-Disposition: form-data; name=\"uploaded_file\";filename=\""
-                            + selectedFilePath + "\"" + lineEnd);
+                    String fileHeader1 = "--" + boundary + "\r\n"
+                            + "Content-Disposition: form-data; name=\"uploaded_file\"; filename=\""
+                            + adData.getFileName() + "\"\r\n"
+                            + "Content-Type: multipart/form-data\r\n"
+                            + "Content-Transfer-Encoding: binary\r\n";
 
-                    dataOutputStream.writeBytes(lineEnd);
+                    long fileLength = selectedFile.length() + tail.length();
+                    String fileHeader2 = "Content-length: " + fileLength + "\r\n";
+                    String fileHeader = fileHeader1 + fileHeader2 + "\r\n";
+                    String stringData = fileHeader;
+
+                    long requestLength = stringData.length() + fileLength;
+                    connection.setRequestProperty("Content-length", "" + requestLength);
+                    connection.setFixedLengthStreamingMode((int) requestLength);
+                    connection.connect();
+
+                    DataOutputStream dataOutputStream = new DataOutputStream(connection.getOutputStream());
+                    dataOutputStream.writeBytes(stringData);
+                    dataOutputStream.flush();
+
+
+
+                   // connection.setDoInput(true);
+                  //  connection.setDoOutput(true);
+                   // connection.setUseCaches(false);
+                   // connection.setChunkedStreamingMode(1024);
+                  //  connection.setRequestMethod("POST");
+                  //  connection.setRequestProperty("Connection", "Keep-Alive");
+
+                    //connection.setRequestProperty("uploaded_file",selectedFilePath);
+                    //connection.setRequestProperty("new_name", adData.getFileName());
+                    //connection.setRequestProperty("ENCTYPE", "multipart/form-data");
+                   // connection.setRequestProperty(
+                  //          "Content-Type", "multipart/form-data;boundary=" + boundary);
+
+                   // connection.connect();
+
+                  //  dataOutputStream = new DataOutputStream(connection.getOutputStream());
+                 //   dataOutputStream.flush();
+
+                  //  dataOutputStream.writeChars(twoHyphens + boundary + lineEnd);
+                   // dataOutputStream.writeChars("Content-Disposition: form-data; name=\"uploaded_file\";filename=\""
+                  //          + selectedFilePath + "\"" + lineEnd);
+//
+                  //  dataOutputStream.writeChars(lineEnd);
+                  //  dataOutputStream.flush();
 
                     int totalSize = (int)selectedFile.length();
 
@@ -488,8 +535,8 @@ public class AdsListFragment extends Fragment implements AdSpaceRecyclerListAdap
 
                     publishProgress(""+(int)((progress*100)/totalSize));
 
-                    dataOutputStream.writeBytes(lineEnd);
-                    dataOutputStream.writeBytes(twoHyphens + boundary + twoHyphens + lineEnd);
+                    dataOutputStream.writeBytes(tail);
+                    dataOutputStream.flush();
 
                     try{
                         serverResponseCode = connection.getResponseCode();
@@ -525,10 +572,12 @@ public class AdsListFragment extends Fragment implements AdSpaceRecyclerListAdap
 
         int adSpaceId;
         ArrayList<String> adList;
+        ArrayList<String> adListToDelete;
 
-        SendPostRequest(int adSpaceId, ArrayList<String> adList){
+        SendPostRequest(int adSpaceId, ArrayList<String> adList, ArrayList<String> adListToDelete){
             this.adSpaceId = adSpaceId;
             this.adList = adList;
+            this.adListToDelete = adListToDelete;
         }
 
 
@@ -540,8 +589,41 @@ public class AdsListFragment extends Fragment implements AdSpaceRecyclerListAdap
         @Override
         protected void onPostExecute(String result) {
 
-            if (!result.equals("SUCCESS")) {
+            if(result.indexOf("false") == 0){
                 Snackbar.make(coordinatorLayout, "Error Contacting Server ... Sorry Try Again.", Snackbar.LENGTH_LONG).show();
+            }
+            else {
+                try {
+
+                    ObjectMapper mapper = new ObjectMapper();
+                    ResponseServerUpdate responseServerUpdate = mapper.readValue(convertToListData(java.net.URLDecoder.decode(result, "UTF-8")), ResponseServerUpdate.class);
+
+                    if(responseServerUpdate.getAdSpaceId() == 4){
+                        dbHelper.removeAllAd(4);
+                        for (AdData adData:
+                             adapter.getAdListItems()) {
+                            dbHelper.insertAd(adData, 4);
+
+                        }
+
+                    }else {
+
+                        for (String filename :
+                                responseServerUpdate.getUnknownFiles()) {
+                            dbHelper.removeSingleAd(filename, responseServerUpdate.getAdSpaceId());
+                            adapter.updateAdList(dbHelper.getAdList(responseServerUpdate.getAdSpaceId()));
+                        }
+                        for (String filename :
+                                adListToDelete) {
+                            dbHelper.removeSingleAd(filename, responseServerUpdate.getAdSpaceId());
+                        }
+                        dbHelper.updateAdListStatus(adapter.getAdListItems(), currentAdSpace);
+                    }
+                    adapter.updateAdsToDelete();
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }
@@ -569,6 +651,7 @@ public class AdsListFragment extends Fragment implements AdSpaceRecyclerListAdap
 
             OutputStream os = httpURLConnection.getOutputStream();
             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os, "UTF-8"));
+            System.out.println(postDataParameters);
             writer.write(getPostDataString(postDataParameters));
             writer.flush();
             writer.close();
@@ -602,6 +685,12 @@ public class AdsListFragment extends Fragment implements AdSpaceRecyclerListAdap
 
 
         return result;
+    }
+
+    public static String convertToListData(String paramIn) {
+        paramIn = paramIn.replaceAll("=", "\":");
+        paramIn = paramIn.replaceAll("&", ",\"");
+        return "{\"" + paramIn + "}";
     }
 
     @NonNull
